@@ -15,6 +15,13 @@
       "when": 1759478494214,
       "tag": "0001_slow_warbound",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1759557378728,
+      "tag": "0002_naive_hellcat",
+      "breakpoints": true
     }
   ]
 }

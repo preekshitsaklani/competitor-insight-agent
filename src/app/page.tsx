@@ -164,14 +164,20 @@ export default function DashboardPage() {
             <CardTitle>Recent Insights</CardTitle>
           </CardHeader>
           <CardContent>
-            {insights.length === 0 ? (
+            {competitors.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground mb-4">
-                  No insights yet. Add competitors to start tracking.
+                  No competitors tracked yet. Add your first competitor to start monitoring.
                 </p>
                 <Button asChild>
                   <Link href="/competitors">Add Your First Competitor</Link>
                 </Button>
+              </div>
+            ) : insights.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-4">
+                  No insights generated yet. Our AI is analyzing your competitors...
+                </p>
               </div>
             ) : (
               <div className="space-y-4">

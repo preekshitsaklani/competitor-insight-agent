@@ -61,6 +61,9 @@ export function Header() {
           <Link href="/insights" className="text-sm font-medium hover:text-primary transition-colors">
             Insights
           </Link>
+          <Link href="/performance" className="text-sm font-medium hover:text-primary transition-colors">
+            Performance
+          </Link>
           <Link href="/settings" className="text-sm font-medium hover:text-primary transition-colors">
             Settings
           </Link>

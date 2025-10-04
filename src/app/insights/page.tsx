@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, ExternalLink, ThumbsUp, ThumbsDown, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface Competitor {
   id: number;
@@ -33,8 +34,10 @@ interface Insight {
   sourceUrl?: string;
   keyPoints?: string[];
   recommendations?: string[];
-  publicOpinionLikes?: number;
-  publicOpinionDislikes?: number;
+  labels?: string[];
+  publicOpinionPositive?: number;
+  publicOpinionNegative?: number;
+  platform?: string;
 }
 
 export default function InsightsPage() {
@@ -261,13 +264,23 @@ export default function InsightsPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-semibold text-lg">{competitor?.name}</h3>
+                          
+                          {insight.labels && insight.labels.length > 0 && (
+                            <>
+                              {insight.labels.map((label, idx) => (
+                                <Badge key={idx} variant="default" className="bg-blue-600">
+                                  {label}
+                                </Badge>
+                              ))}
+                            </>
+                          )}
+                          
                           <Badge variant={insight.sentiment === "threat" ? "destructive" : insight.sentiment === "opportunity" ? "default" : "secondary"}>
                             {insight.sentiment}
                           </Badge>
                           <Badge variant={insight.priority === "high" ? "destructive" : insight.priority === "medium" ? "default" : "secondary"}>
                             {insight.priority}
                           </Badge>
-                          <Badge variant="outline">{insight.insightType.replace(/_/g, " ")}</Badge>
                           {insight.platform && <Badge variant="outline">{insight.platform}</Badge>}
                         </div>
                         <p className="text-sm text-muted-foreground">
@@ -303,15 +316,15 @@ export default function InsightsPage() {
                       </div>
                     )}
 
-                    {insight.publicOpinion && (
+                    {(insight.publicOpinionPositive !== undefined || insight.publicOpinionNegative !== undefined) && (
                       <div className="flex items-center gap-6 text-sm">
                         <div className="flex items-center gap-2">
                           <ThumbsUp className="h-4 w-4 text-green-600" />
-                          <span className="text-green-600">{insight.publicOpinion.positive}% positive</span>
+                          <span className="text-green-600">{insight.publicOpinionPositive || 0}% positive</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <ThumbsDown className="h-4 w-4 text-red-600" />
-                          <span className="text-red-600">{insight.publicOpinion.negative}% negative</span>
+                          <span className="text-red-600">{insight.publicOpinionNegative || 0}% negative</span>
                         </div>
                       </div>
                     )}

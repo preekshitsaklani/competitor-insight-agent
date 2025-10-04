@@ -268,3 +268,92 @@ Generate battle card in JSON format:
   
   throw new Error("Failed to parse AI response");
 }
+
+export async function analyzeCompetitorContent(
+  competitorName: string,
+  scrapedData: Array<{ platform: string; url: string; content: string }>
+): Promise<any[]> {
+  const results = [];
+
+  for (const data of scrapedData) {
+    try {
+      const prompt = `
+You are an expert competitive intelligence analyst. Analyze the following content from ${competitorName}'s ${data.platform} and provide comprehensive insights.
+
+Content:
+${data.content}
+
+Your task:
+1. Identify if there are any new product launches, feature updates, service launches, software releases, or significant announcements
+2. Analyze the sentiment (is this a threat, opportunity, or neutral for competitors?)
+3. Determine priority level (high, medium, low) based on potential business impact
+4. Extract key points that matter most
+5. Provide actionable recommendations
+6. Assess public opinion by analyzing tone and reception indicators in the content
+7. Assign multiple labels for what was detected (e.g., "Product Launch", "Feature Update", "Service Launch", "Software Launch", "Marketing Campaign", "Partnership", "Executive Hire", "Pricing Change")
+
+Respond in JSON format:
+{
+  "hasSignificantUpdate": boolean,
+  "summary": "Professional, concise 2-3 sentence summary",
+  "insightType": "product_launch" | "feature_update" | "pricing_change" | "marketing_campaign" | "executive_hire" | "partnership" | "other",
+  "sentiment": "threat" | "opportunity" | "neutral",
+  "priority": "high" | "medium" | "low",
+  "keyPoints": ["point1", "point2", "point3"],
+  "recommendations": ["recommendation1", "recommendation2"],
+  "impact": "Brief description of business impact",
+  "tags": ["tag1", "tag2"],
+  "labels": ["Product Launch", "Feature Update", etc.],
+  "publicOpinion": {
+    "overall": "positive" | "negative" | "mixed" | "neutral",
+    "likes": "What people like about it",
+    "dislikes": "What people dislike about it"
+  },
+  "publicOpinionPositive": number (0-100),
+  "publicOpinionNegative": number (0-100)
+}
+
+Only respond with valid JSON, no markdown formatting.
+`;
+
+      const response = await genAI.models.generateContent({
+        model: 'gemini-2.0-flash-exp',
+        contents: prompt
+      });
+
+      const responseText = response.text;
+      // Remove markdown code blocks if present
+      const cleanedText = responseText
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      
+      const analysis = JSON.parse(cleanedText);
+
+      // Only create insights for significant updates
+      if (analysis.hasSignificantUpdate) {
+        results.push({
+          platform: data.platform,
+          sourceUrl: data.url,
+          rawContent: data.content.substring(0, 1000), // Store first 1000 chars
+          summary: analysis.summary,
+          insightType: analysis.insightType,
+          sentiment: analysis.sentiment,
+          priority: analysis.priority,
+          keyPoints: analysis.keyPoints,
+          recommendations: analysis.recommendations,
+          impact: analysis.impact,
+          tags: analysis.tags,
+          labels: analysis.labels || [],
+          publicOpinion: analysis.publicOpinion,
+          publicOpinionPositive: analysis.publicOpinionPositive || 0,
+          publicOpinionNegative: analysis.publicOpinionNegative || 0
+        });
+      }
+    } catch (error) {
+      console.error(`Error analyzing ${data.platform}:`, error);
+    }
+  }
+
+  return results;
+}

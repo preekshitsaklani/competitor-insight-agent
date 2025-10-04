@@ -9,8 +9,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { MoreVertical, ExternalLink, Trash2, Pause, Play } from "lucide-react";
+import { MoreVertical, ExternalLink, Trash2, Pause, Play, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 
 interface Competitor {
   id: number;
@@ -29,6 +30,36 @@ export function CompetitorCard({
   competitor: Competitor;
   onUpdate: () => void;
 }) {
+  const [scanning, setScanning] = useState(false);
+
+  const handleScanNow = async () => {
+    setScanning(true);
+    try {
+      const token = localStorage.getItem("bearer_token");
+      const res = await fetch("/api/scrape", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ competitorId: competitor.id }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Scan complete! Generated ${data.insightsGenerated} insights from ${data.sourcesScraped} sources.`);
+        onUpdate();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Failed to scan competitor");
+      }
+    } catch (error) {
+      toast.error("Failed to scan competitor");
+    } finally {
+      setScanning(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!confirm(`Are you sure you want to delete ${competitor.name}?`)) return;
 
@@ -137,23 +168,34 @@ export function CompetitorCard({
           <Badge variant="outline">{competitor.monitoringFrequency}</Badge>
         </div>
 
-        {competitor.websiteUrl && (
+        <div className="flex gap-2">
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
-            className="w-full"
-            asChild
+            className="flex-1"
+            onClick={handleScanNow}
+            disabled={scanning}
           >
-            <a
-              href={competitor.websiteUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              Visit Website
-            </a>
+            <Sparkles className="mr-2 h-4 w-4" />
+            {scanning ? "Scanning..." : "Scan Now"}
           </Button>
-        )}
+
+          {competitor.websiteUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+            >
+              <a
+                href={competitor.websiteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

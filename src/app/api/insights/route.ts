@@ -151,7 +151,10 @@ export async function POST(request: NextRequest) {
       recommendations,
       impact,
       tags,
+      labels,
       publicOpinion,
+      publicOpinionPositive = 0,
+      publicOpinionNegative = 0,
       sourceUrl,
       detectedAt
     } = requestBody;
@@ -212,6 +215,21 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Validate public opinion counts
+    if (publicOpinionPositive && (isNaN(parseInt(publicOpinionPositive)) || parseInt(publicOpinionPositive) < 0)) {
+      return NextResponse.json({ 
+        error: "Public opinion positive must be a non-negative integer",
+        code: "INVALID_PUBLIC_OPINION_POSITIVE" 
+      }, { status: 400 });
+    }
+
+    if (publicOpinionNegative && (isNaN(parseInt(publicOpinionNegative)) || parseInt(publicOpinionNegative) < 0)) {
+      return NextResponse.json({ 
+        error: "Public opinion negative must be a non-negative integer",
+        code: "INVALID_PUBLIC_OPINION_NEGATIVE" 
+      }, { status: 400 });
+    }
+
     // Verify competitor belongs to user
     const competitor = await db.select()
       .from(competitors)
@@ -238,7 +256,10 @@ export async function POST(request: NextRequest) {
       recommendations: recommendations || null,
       impact: impact?.trim() || null,
       tags: tags || null,
+      labels: labels || null,
       publicOpinion: publicOpinion || null,
+      publicOpinionPositive: parseInt(publicOpinionPositive) || 0,
+      publicOpinionNegative: parseInt(publicOpinionNegative) || 0,
       sourceUrl: sourceUrl?.trim() || null,
       detectedAt,
       createdAt: new Date().toISOString()
@@ -307,7 +328,10 @@ export async function PUT(request: NextRequest) {
       recommendations,
       impact,
       tags,
+      labels,
       publicOpinion,
+      publicOpinionPositive,
+      publicOpinionNegative,
       sourceUrl,
       detectedAt
     } = requestBody;
@@ -343,6 +367,21 @@ export async function PUT(request: NextRequest) {
           code: "INVALID_PRIORITY" 
         }, { status: 400 });
       }
+    }
+
+    // Validate public opinion counts if provided
+    if (publicOpinionPositive !== undefined && (isNaN(parseInt(publicOpinionPositive)) || parseInt(publicOpinionPositive) < 0)) {
+      return NextResponse.json({ 
+        error: "Public opinion positive must be a non-negative integer",
+        code: "INVALID_PUBLIC_OPINION_POSITIVE" 
+      }, { status: 400 });
+    }
+
+    if (publicOpinionNegative !== undefined && (isNaN(parseInt(publicOpinionNegative)) || parseInt(publicOpinionNegative) < 0)) {
+      return NextResponse.json({ 
+        error: "Public opinion negative must be a non-negative integer",
+        code: "INVALID_PUBLIC_OPINION_NEGATIVE" 
+      }, { status: 400 });
     }
 
     // Validate competitorId if provided
@@ -382,7 +421,10 @@ export async function PUT(request: NextRequest) {
     if (recommendations !== undefined) updates.recommendations = recommendations;
     if (impact !== undefined) updates.impact = impact?.trim() || null;
     if (tags !== undefined) updates.tags = tags;
+    if (labels !== undefined) updates.labels = labels;
     if (publicOpinion !== undefined) updates.publicOpinion = publicOpinion;
+    if (publicOpinionPositive !== undefined) updates.publicOpinionPositive = parseInt(publicOpinionPositive) || 0;
+    if (publicOpinionNegative !== undefined) updates.publicOpinionNegative = parseInt(publicOpinionNegative) || 0;
     if (sourceUrl !== undefined) updates.sourceUrl = sourceUrl?.trim() || null;
     if (detectedAt !== undefined) updates.detectedAt = detectedAt;
 
