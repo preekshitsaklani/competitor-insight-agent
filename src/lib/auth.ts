@@ -10,7 +10,23 @@ export const auth = betterAuth({
 		provider: "sqlite",
 	}),
 	emailAndPassword: {    
-		enabled: true
+		enabled: true,
+		sendResetPassword: async ({ user, url }, request) => {
+			// Log for development - replace with actual email service in production
+			console.log("Password reset requested for:", user.email);
+			console.log("Reset URL:", url);
+			
+			// TODO: Integrate with email service (SendGrid, Resend, etc.)
+			// Example with fetch to your email API:
+			// await fetch('/api/send-email', {
+			//   method: 'POST',
+			//   body: JSON.stringify({
+			//     to: user.email,
+			//     subject: 'Reset Your Password',
+			//     html: `Click here to reset: ${url}`
+			//   })
+			// });
+		}
 	},
 	plugins: [bearer()]
 });

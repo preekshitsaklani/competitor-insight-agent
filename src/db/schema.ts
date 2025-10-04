@@ -11,6 +11,13 @@ export const user = sqliteTable("user", {
     .$defaultFn(() => false)
     .notNull(),
   image: text("image"),
+  phone: text("phone"),
+  companyWebsite: text("company_website"),
+  profilePhotoUrl: text("profile_photo_url"),
+  deactivatedAt: integer("deactivated_at", { mode: "timestamp" }),
+  deactivationRequestedAt: integer("deactivation_requested_at", { mode: "timestamp" }),
+  deletionRequestedAt: integer("deletion_requested_at", { mode: "timestamp" }),
+  deletionScheduledAt: integer("deletion_scheduled_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .$defaultFn(() => new Date())
     .notNull(),
@@ -124,4 +131,15 @@ export const userSettings = sqliteTable('user_settings', {
   preferredDeliveryTime: text('preferred_delivery_time').default('09:00'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
+});
+
+export const corporationInfo = sqliteTable('corporation_info', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: text('user_id').notNull().unique().references(() => user.id, { onDelete: 'cascade' }),
+  companySize: integer('company_size'),
+  companyDescription: text('company_description'),
+  industry: text('industry'),
+  topEmployees: text('top_employees', { mode: 'json' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });

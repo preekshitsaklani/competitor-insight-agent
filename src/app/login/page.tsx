@@ -27,6 +27,9 @@ export default function LoginPage() {
     if (searchParams.get("registered") === "true") {
       toast.success("Account created! Please sign in to continue.");
     }
+    if (searchParams.get("reset") === "true") {
+      toast.success("Password reset successfully! Please sign in with your new password.");
+    }
   }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,7 +86,16 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link 
+                  href="/forgot-password" 
+                  className="text-sm text-primary hover:underline"
+                  tabIndex={-1}
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <Input
                   id="password"
