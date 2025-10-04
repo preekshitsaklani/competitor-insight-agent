@@ -32,6 +32,8 @@ export default function ProfileSettingsPage() {
   });
   const [phoneOtp, setPhoneOtp] = useState("");
   const [showPhoneOtp, setShowPhoneOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [pendingPhone, setPendingPhone] = useState("");
 
   useEffect(() => {
     if (!isPending && !session?.user) {
@@ -151,20 +153,81 @@ export default function ProfileSettingsPage() {
   };
 
   const handlePhoneChange = async (newPhone: string) => {
-    setProfile({ ...profile, phone: newPhone });
-    if (newPhone && newPhone !== profile.phone) {
+    if (newPhone && newPhone !== profile.phone && newPhone.length >= 10) {
+      setPendingPhone(newPhone);
       setShowPhoneOtp(true);
-      toast.info("OTP sent to your phone");
+      
+      // Send OTP via email
+      try {
+        const token = localStorage.getItem("bearer_token");
+        const res = await fetch("/api/send-otp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ phone: newPhone }),
+        });
+
+        if (res.ok) {
+          setOtpSent(true);
+          toast.success("Verification code sent to your email");
+        } else {
+          const data = await res.json();
+          toast.error(data.error || "Failed to send verification code");
+          setShowPhoneOtp(false);
+        }
+      } catch (error) {
+        toast.error("Failed to send verification code");
+        setShowPhoneOtp(false);
+      }
+    } else {
+      setProfile({ ...profile, phone: newPhone });
     }
   };
 
   const verifyPhoneOtp = async () => {
-    if (phoneOtp.length === 6) {
-      toast.success("Phone verified successfully");
-      setShowPhoneOtp(false);
-      setPhoneOtp("");
-    } else {
-      toast.error("Invalid OTP");
+    if (phoneOtp.length !== 6) {
+      toast.error("Please enter a 6-digit code");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("bearer_token");
+      const res = await fetch("/api/send-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ 
+          phone: pendingPhone,
+          otp: phoneOtp,
+          verify: true 
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.verified) {
+          // Update profile with verified phone
+          setProfile({ ...profile, phone: pendingPhone });
+          toast.success("Phone verified successfully");
+          setShowPhoneOtp(false);
+          setPhoneOtp("");
+          setOtpSent(false);
+          setPendingPhone("");
+          
+          // Save to backend
+          await handleSaveProfile();
+        } else {
+          toast.error("Invalid verification code");
+        }
+      } else {
+        toast.error("Failed to verify code");
+      }
+    } catch (error) {
+      toast.error("Failed to verify code");
     }
   };
 
@@ -224,19 +287,38 @@ export default function ProfileSettingsPage() {
             <Label htmlFor="phone">Phone Number</Label>
             <Input
               id="phone"
-              value={profile.phone}
+              value={showPhoneOtp ? pendingPhone : profile.phone}
               onChange={(e) => handlePhoneChange(e.target.value)}
               placeholder="+1234567890"
+              disabled={showPhoneOtp}
             />
             {showPhoneOtp && (
-              <div className="mt-2 flex gap-2">
-                <Input
-                  value={phoneOtp}
-                  onChange={(e) => setPhoneOtp(e.target.value)}
-                  placeholder="Enter 6-digit OTP"
-                  maxLength={6}
-                />
-                <Button onClick={verifyPhoneOtp}>Verify</Button>
+              <div className="mt-2 space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  A verification code has been sent to your email
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    value={phoneOtp}
+                    onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, ""))}
+                    placeholder="Enter 6-digit code"
+                    maxLength={6}
+                  />
+                  <Button onClick={verifyPhoneOtp} disabled={!otpSent}>
+                    Verify
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowPhoneOtp(false);
+                      setPhoneOtp("");
+                      setOtpSent(false);
+                      setPendingPhone("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
             )}
           </div>

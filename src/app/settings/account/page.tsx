@@ -35,6 +35,7 @@ export default function AccountSettingsPage() {
     verificationCode: "",
   });
   const [showDeleteVerification, setShowDeleteVerification] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
 
   useEffect(() => {
     if (!isPending && !session?.user) {
@@ -122,11 +123,36 @@ export default function AccountSettingsPage() {
   };
 
   const handleRequestDeleteAccount = async () => {
+    if (!deleteForm.password) {
+      toast.error("Please enter your password first");
+      return;
+    }
+
     setLoading(true);
     try {
-      // Send verification code to email
-      toast.info("Verification code sent to your email");
-      setShowDeleteVerification(true);
+      const token = localStorage.getItem("bearer_token");
+      
+      // Send 2FA verification code to email
+      const res = await fetch("/api/send-2fa", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ 
+          action: "send",
+          password: deleteForm.password 
+        }),
+      });
+
+      if (res.ok) {
+        setCodeSent(true);
+        setShowDeleteVerification(true);
+        toast.success("Verification code sent to your email");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to send verification code");
+      }
     } catch (error) {
       toast.error("Failed to send verification code");
     } finally {
@@ -148,6 +174,34 @@ export default function AccountSettingsPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem("bearer_token");
+      
+      // Verify 2FA code
+      const verifyRes = await fetch("/api/send-2fa", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: "verify",
+          code: deleteForm.verificationCode,
+        }),
+      });
+
+      if (!verifyRes.ok) {
+        toast.error("Invalid verification code");
+        setLoading(false);
+        return;
+      }
+
+      const verifyData = await verifyRes.json();
+      if (!verifyData.verified) {
+        toast.error("Invalid verification code");
+        setLoading(false);
+        return;
+      }
+
+      // If verified, schedule account deletion
       const res = await fetch(`/api/users`, {
         method: "PUT",
         headers: {
@@ -292,37 +346,50 @@ export default function AccountSettingsPage() {
           </p>
 
           {!showDeleteVerification ? (
-            <Button variant="destructive" onClick={handleRequestDeleteAccount} disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Request Account Deletion
-            </Button>
-          ) : (
-            <div className="space-y-4 p-4 border border-red-200 rounded-lg">
+            <div className="space-y-4">
               <div>
-                <Label htmlFor="del-password">Enter Current Password</Label>
+                <Label htmlFor="del-password-initial">Enter Current Password</Label>
                 <Input
-                  id="del-password"
+                  id="del-password-initial"
                   type="password"
                   autoComplete="off"
                   value={deleteForm.password}
                   onChange={(e) => setDeleteForm({ ...deleteForm, password: e.target.value })}
+                  placeholder="Enter your password"
                 />
               </div>
+              <Button variant="destructive" onClick={handleRequestDeleteAccount} disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Request Account Deletion
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4 p-4 border border-red-200 rounded-lg bg-red-50 dark:bg-red-950/20">
+              <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                ⚠️ A verification code has been sent to your email
+              </p>
               <div>
                 <Label htmlFor="del-code">Enter Email Verification Code</Label>
                 <Input
                   id="del-code"
                   value={deleteForm.verificationCode}
-                  onChange={(e) => setDeleteForm({ ...deleteForm, verificationCode: e.target.value })}
+                  onChange={(e) => setDeleteForm({ ...deleteForm, verificationCode: e.target.value.replace(/\D/g, "") })}
                   placeholder="6-digit code"
                   maxLength={6}
                 />
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowDeleteVerification(false)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowDeleteVerification(false);
+                    setCodeSent(false);
+                    setDeleteForm({ ...deleteForm, verificationCode: "" });
+                  }}
+                >
                   Cancel
                 </Button>
-                <Button variant="destructive" onClick={handleConfirmDeleteAccount} disabled={loading}>
+                <Button variant="destructive" onClick={handleConfirmDeleteAccount} disabled={loading || !codeSent}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Confirm Deletion
                 </Button>
