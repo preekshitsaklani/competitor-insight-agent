@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Target, Bell, Activity, Plus, Loader2 } from "lucide-react";
+import { TrendingUp, Target, Bell, Activity, Plus, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface Competitor {
   id: number;
@@ -36,6 +37,7 @@ export default function DashboardPage() {
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
+  const [missingInfo, setMissingInfo] = useState(false);
 
   useEffect(() => {
     if (!isPending && !session?.user) {
@@ -46,8 +48,37 @@ export default function DashboardPage() {
   useEffect(() => {
     if (session?.user) {
       fetchData();
+      checkCompanyInfo();
     }
   }, [session]);
+
+  const checkCompanyInfo = async () => {
+    try {
+      const token = localStorage.getItem("bearer_token");
+      const [userRes, corpRes] = await Promise.all([
+        fetch("/api/users", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch("/api/corporation-info", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      if (userRes.ok && corpRes.ok) {
+        const userData = await userRes.json();
+        const corpData = await corpRes.json();
+
+        const hasUserInfo = userData.companyWebsite && userData.phone;
+        const hasCorpInfo = corpData.length > 0 && corpData[0].companySize > 0;
+
+        if (!hasUserInfo || !hasCorpInfo) {
+          setMissingInfo(true);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to check company info");
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -96,6 +127,19 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container py-8">
+        {missingInfo && (
+          <Alert className="mb-6 border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/20">
+            <AlertCircle className="h-4 w-4 text-orange-600" />
+            <AlertTitle className="text-orange-600">Complete Your Profile</AlertTitle>
+            <AlertDescription className="text-orange-600/90">
+              Please complete your company information in settings to enable full competitor tracking features.
+              <Button variant="link" className="p-0 h-auto ml-2 text-orange-600" asChild>
+                <Link href="/settings/corporation">Go to Settings →</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold">Dashboard</h1>

@@ -270,18 +270,15 @@ Generate battle card in JSON format:
 }
 
 export async function analyzeCompetitorContent(
+  content: string,
   competitorName: string,
-  scrapedData: Array<{ platform: string; url: string; content: string }>
-): Promise<any[]> {
-  const results = [];
-
-  for (const data of scrapedData) {
-    try {
-      const prompt = `
-You are an expert competitive intelligence analyst. Analyze the following content from ${competitorName}'s ${data.platform} and provide comprehensive insights.
+  source: string
+) {
+  const prompt = `
+You are an expert competitive intelligence analyst. Analyze the following content from ${competitorName}'s ${source} and provide comprehensive insights.
 
 Content:
-${data.content}
+${content}
 
 Your task:
 1. Identify if there are any new product launches, feature updates, service launches, software releases, or significant announcements
@@ -316,44 +313,101 @@ Respond in JSON format:
 Only respond with valid JSON, no markdown formatting.
 `;
 
-      const response = await genAI.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
-        contents: prompt
-      });
+  const result = await genAI.models.generateContent({
+    model: 'gemini-2.0-flash-exp',
+    contents: prompt
+  });
 
-      const responseText = response.text;
-      // Remove markdown code blocks if present
-      const cleanedText = responseText
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?/g, '')
-        .trim();
-      
-      const analysis = JSON.parse(cleanedText);
+  const responseText = result.text;
+  // Remove markdown code blocks if present
+  const cleanedText = responseText
+    .replace(/```json\n?/g, '')
+    .replace(/```\n?/g, '')
+    .trim();
+  
+  const analysis = JSON.parse(cleanedText);
 
-      // Only create insights for significant updates
-      if (analysis.hasSignificantUpdate) {
-        results.push({
-          platform: data.platform,
-          sourceUrl: data.url,
-          rawContent: data.content.substring(0, 1000), // Store first 1000 chars
-          summary: analysis.summary,
-          insightType: analysis.insightType,
-          sentiment: analysis.sentiment,
-          priority: analysis.priority,
-          keyPoints: analysis.keyPoints,
-          recommendations: analysis.recommendations,
-          impact: analysis.impact,
-          tags: analysis.tags,
-          labels: analysis.labels || [],
-          publicOpinion: analysis.publicOpinion,
-          publicOpinionPositive: analysis.publicOpinionPositive || 0,
-          publicOpinionNegative: analysis.publicOpinionNegative || 0
-        });
-      }
-    } catch (error) {
-      console.error(`Error analyzing ${data.platform}:`, error);
+  // Only create insights for significant updates
+  if (analysis.hasSignificantUpdate) {
+    return {
+      platform: source,
+      sourceUrl: source,
+      rawContent: content.substring(0, 1000), // Store first 1000 chars
+      summary: analysis.summary,
+      insightType: analysis.insightType,
+      sentiment: analysis.sentiment,
+      priority: analysis.priority,
+      keyPoints: analysis.keyPoints,
+      recommendations: analysis.recommendations,
+      impact: analysis.impact,
+      tags: analysis.tags,
+      labels: analysis.labels || [],
+      publicOpinion: analysis.publicOpinion,
+      publicOpinionPositive: analysis.publicOpinionPositive || 0,
+      publicOpinionNegative: analysis.publicOpinionNegative || 0
+    };
+  }
+}
+
+export async function analyzeCompetitorDiscovery(
+  companyDescription: string,
+  context: {
+    companySize?: number;
+    industry?: string;
+    description?: string;
+  } | null
+) {
+  const prompt = `You are a competitive intelligence analyst. Based on the following company description, identify 5-10 direct competitors.
+
+Company Description: ${companyDescription}
+
+${context ? `Additional Context:
+- Company Size: ${context.companySize} employees
+- Industry: ${context.industry}
+- Description: ${context.description}` : ""}
+
+For each competitor, provide:
+1. Company name
+2. Website URL (official domain only)
+3. Industry/category
+4. Brief description (1-2 sentences)
+5. Official social media handles (ONLY if you're certain they exist):
+   - LinkedIn (company page URL)
+   - Twitter/X (handle)
+   - Facebook (page URL)
+   - Instagram (handle)
+   - Reddit (subreddit if applicable)
+
+IMPORTANT: Only include social media handles if you are absolutely certain they are official and active. If unsure, omit them.
+
+Return your response in the following JSON format:
+{
+  "competitors": [
+    {
+      "name": "Company Name",
+      "websiteUrl": "https://example.com",
+      "industry": "Industry",
+      "description": "Brief description",
+      "socialAccounts": [
+        {
+          "platform": "linkedin",
+          "url": "https://linkedin.com/company/...",
+          "handle": "company-name"
+        }
+      ]
     }
+  ]
+}`;
+
+  const result = await genAI.models.generateContent(prompt);
+  const text = result.response.text();
+
+  // Extract JSON from the response
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error("Failed to parse AI response");
   }
 
-  return results;
+  const data = JSON.parse(jsonMatch[0]);
+  return data.competitors;
 }
