@@ -14,6 +14,8 @@ export const user = sqliteTable("user", {
   phone: text("phone"),
   companyWebsite: text("company_website"),
   profilePhotoUrl: text("profile_photo_url"),
+  totpSecret: text("totp_secret"),
+  totpEnabled: integer("totp_enabled", { mode: "boolean" }).default(false),
   deactivatedAt: integer("deactivated_at", { mode: "timestamp" }),
   deactivationRequestedAt: integer("deactivation_requested_at", { mode: "timestamp" }),
   deletionRequestedAt: integer("deletion_requested_at", { mode: "timestamp" }),
@@ -140,6 +142,41 @@ export const corporationInfo = sqliteTable('corporation_info', {
   companyDescription: text('company_description'),
   industry: text('industry'),
   topEmployees: text('top_employees', { mode: 'json' }),
+  companyWebsite: text('company_website'),
+  companyLinkedin: text('company_linkedin'),
+  companyTwitter: text('company_twitter'),
+  companyFacebook: text('company_facebook'),
+  companyInstagram: text('company_instagram'),
+  companyYoutube: text('company_youtube'),
+  companyReddit: text('company_reddit'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const financialMetrics = sqliteTable('financial_metrics', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  month: text('month').notNull(),
+  expenses: integer('expenses').notNull(),
+  marketing: integer('marketing').notNull(),
+  totalRevenue: integer('total_revenue').notNull(),
+  profit: integer('profit').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const userSentimentData = sqliteTable('user_sentiment_data', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  scrapedAt: integer('scraped_at', { mode: 'timestamp' }).notNull(),
+  positivePercentage: integer('positive_percentage').notNull().default(0),
+  neutralPercentage: integer('neutral_percentage').notNull().default(0),
+  negativePercentage: integer('negative_percentage').notNull().default(0),
+  positiveSummary: text('positive_summary', { mode: 'json' }),
+  neutralSummary: text('neutral_summary', { mode: 'json' }),
+  negativeSummary: text('negative_summary', { mode: 'json' }),
+  rawComments: text('raw_comments', { mode: 'json' }),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .$defaultFn(() => new Date())
+    .notNull(),
 });
