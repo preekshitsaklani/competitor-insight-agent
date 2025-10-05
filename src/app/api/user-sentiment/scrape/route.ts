@@ -33,11 +33,11 @@ interface SentimentAnalysis {
   negativeSummary: string[];
 }
 
-// Inline scraper functions to avoid module resolution issues
+// Inline scraper functions - no external imports to avoid module resolution issues
 async function scrapeYouTubeVideos(channelName: string, maxVideos: number = 50) {
   try {
     console.log(`[YouTube] Searching for: ${channelName}`);
-    // Returns empty array for now - actual scraping would require YouTube Data API
+    // Placeholder - requires YouTube Data API v3 with API key
     return [];
   } catch (error) {
     console.error('YouTube scraping error:', error);
@@ -48,7 +48,7 @@ async function scrapeYouTubeVideos(channelName: string, maxVideos: number = 50) 
 async function scrapeYouTubeVideoComments(videoId: string, maxComments: number = 50) {
   try {
     console.log(`[YouTube] Would scrape ${maxComments} comments from video: ${videoId}`);
-    // Returns empty array for now - actual scraping would require YouTube Data API
+    // Placeholder - requires YouTube Data API v3
     return [];
   } catch (error) {
     console.error('YouTube comments scraping error:', error);
@@ -59,7 +59,7 @@ async function scrapeYouTubeVideoComments(videoId: string, maxComments: number =
 async function scrapeRedditPosts(query: string) {
   try {
     console.log(`[Reddit] Searching for: ${query}`);
-    // Returns empty arrays for now - actual scraping would use Reddit's JSON API
+    // Placeholder - uses Reddit's public JSON API
     return { posts: [], comments: [] };
   } catch (error) {
     console.error('Reddit scraping error:', error);
