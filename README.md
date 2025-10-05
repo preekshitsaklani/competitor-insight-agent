@@ -64,14 +64,8 @@ Built with modern web technologies and powered by Google Gemini Pro AI, Aether p
   - BlueSky
 
 ### Email & Notifications
-- **Email Service**: Resend API
 - **Slack Integration**: Webhook-based notifications
-- **Notification Types**:
-  - Real-time alerts
-  - Daily digests
-  - Weekly summaries
-- **Delivery Options**: Email, Slack, or both
-- **Customizable**: Users can set preferred delivery times and frequencies
+- **Email Service**: Coming Soon (Couldn't login with indian number for creating an account in top 10 transaction email providers for creating an account with phone number with otp)
 
 ---
 
