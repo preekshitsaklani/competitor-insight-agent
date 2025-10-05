@@ -1176,11 +1176,13 @@ TWITTER_BEARER_TOKEN=AAAAAAAAAA...your_token REDDIT_CLIENT_ID=your_client_id RED
 
 
 ### Step 4: Initialize Database
-npm run db:push
+npx drizzle-kit push
 
+then,
+npm run db:push
 or
 bun run db:push
-
+(ignore the warning)
 
 ### Step 5: Start Development Server
 npm run dev
