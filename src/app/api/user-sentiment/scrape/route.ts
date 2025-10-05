@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { userSentimentData } from '@/db/schema';
 import { getCurrentUser } from '@/lib/auth';
-import { scrapeYouTube, scrapeYouTubeComments } from '@/lib/scrapers/youtube-scraper';
-import { scrapeReddit } from '@/lib/scrapers/reddit-scraper';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Dynamic imports to force module reload
+const getScrapers = async () => {
+  const { scrapeYouTube, scrapeYouTubeComments } = await import('@/lib/scrapers/youtube-scraper');
+  const { scrapeReddit } = await import('@/lib/scrapers/reddit-scraper');
+  return { scrapeYouTube, scrapeYouTubeComments, scrapeReddit };
+};
 
 interface SocialMediaHandles {
   youtube?: string;
@@ -91,6 +96,7 @@ export async function POST(request: NextRequest) {
     }
 
     const allComments: RawComment[] = [];
+    const { scrapeYouTube, scrapeYouTubeComments, scrapeReddit } = await getScrapers();
 
     if (youtube) {
       try {
@@ -122,8 +128,8 @@ export async function POST(request: NextRequest) {
 
     if (reddit) {
       try {
-        const redditPosts = await scrapeReddit(reddit);
-        const formattedRedditComments: RawComment[] = redditPosts.slice(0, 100).map(post => ({
+        const { posts } = await scrapeReddit(reddit);
+        const formattedRedditComments: RawComment[] = posts.slice(0, 100).map(post => ({
           platform: 'reddit',
           text: post.text || post.title || '',
           author: post.author || 'Unknown',
